@@ -8,8 +8,11 @@ ProjectRootRelative=./
 
 [CMake][CMake Build Directory 0]
 Build Directory Path=file:///extras/Dev/Arduino/UNO2IEC/build
-Build Type=Debug
+Build Type=Release
 CMake Binary=file:///usr/bin/cmake
 Environment Profile=
 Extra Arguments=
 Install Directory=file:///extras/Dev/Arduino/UNO2IEC/bin
+
+[Project]
+VersionControlSupport=kdevgit

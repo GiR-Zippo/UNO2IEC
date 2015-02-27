@@ -29,11 +29,6 @@ enum IECChannels {
         CMD_CHANNEL_13 = 13,
 	CMD_CHANNEL = 15
 };
-/*
-#define READPRG_CHANNEL 0
-#define WRITEPRG_CHANNEL 1
-#define CMD_CHANNEL 15
-*/
 
 // Back arrow character code.
 #define CBM_BACK_ARROW 0x5f

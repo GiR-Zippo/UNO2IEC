@@ -1,10 +1,7 @@
 #include "global_defines.h"
-#include "log.h"
+#include "Log.hpp"
 #include "iec_driver.h"
-#include "interface.h"
-
-#include "SD.h"
-#include "dosCommands.hpp"
+#include "DOS.hpp"
 
 // The global IEC handling singleton:
 static IEC iec(8);
@@ -12,11 +9,12 @@ static DOS dos(iec);
 
 void setup()
 {
-    digitalWrite(13, HIGH);
-    // Initialize serial and wait for port to open:
+    pinMode(13, OUTPUT);
+    digitalWrite(13, LOW);
+#ifdef DEBUG
     Serial.begin(DEFAULT_BAUD_RATE);
     Serial.setTimeout(SERIAL_TIMEOUT_MSECS);
-
+#endif
     // initial connection handling.
     registerFacilities();
 

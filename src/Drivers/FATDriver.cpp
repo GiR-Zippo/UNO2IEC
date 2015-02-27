@@ -1,51 +1,67 @@
-#include "dosCommands.hpp"
-
+#include "DOS.hpp"
 #include <Arduino.h>
-#include "SD.h"
+
+#define toupper(c) ((c) >= 'a' && (c) <= 'z') ? (c) & ~0x20 : (c)
 
 void DOS::FAT_GetDir()
 {
-    File root = SD.open("/");
+    word basicPtr = C64_BASIC_START;
+    File root = SD.open(_directory.c_str());
+    root.rewindDirectory();
+    byte n = sprintf(_DataBuffer, "%c%c\x12\x22%s%-22s\x22", 0, 0, "SDCARD:", _directory.c_str());
+    sendListingLine(n, _DataBuffer, basicPtr);
     while(true)
     {
         File entry = root.openNextFile();
         if (! entry)
             break;
+
+        char name[25];
+        entry.getName(name, sizeof(name));
+        for(int i=0; name[i]; i++)
+            name[i] = toupper(name[i]);
         
         if (!entry.isDirectory())
         {
-            word basicPtr = C64_BASIC_START;
-            byte n = sprintf(_DataBuffer, "%c%c%s", 0, 0, entry.name());
+            byte n = sprintf(_DataBuffer, "%c%c   \x22%-24s\x22PRG", 0, 0, name);
             sendListingLine(n, _DataBuffer, basicPtr);
-
         }
-        /*else
+        else
         {
-            Serial.println("/");
-            printDirectory(entry, numTabs+1);
-        }*/
+            byte n = sprintf(_DataBuffer, "%c%c   \x22$/%-22s\x22<DIR>", 0, 0, name);
+            sendListingLine(n, _DataBuffer, basicPtr);
+        }
         entry.close();
     }
 }
 
-void DOS::FAT_SendFile(unsigned char* filename)
+void DOS::FAT_Load(unsigned char* filename)
 {
+    //TODO accept joker
+#ifdef DEBUG    
     Serial.print("FILE ");
-    Serial.print(reinterpret_cast<char *>(filename));
-    if (SD.exists(reinterpret_cast<char *>(filename)))
+    Serial.print(_DataBuffer);
+#endif
+    ConvertFilename(filename);
+    if (SD.exists(_DataBuffer))
     {
+#ifdef DEBUG 
         Serial.print(" EXISTS");
-        File myFile = SD.open(reinterpret_cast<char *>(filename));
-        if (myFile)
+#endif
+        File FAT_CurrentFile = SD.open(_DataBuffer);
+        if (FAT_CurrentFile)
         {
+#ifdef DEBUG 
             Serial.print(" SIZE ");
-            Serial.println(myFile.size());
+            Serial.println(FAT_CurrentFile.size());
+#endif
 
-            while (myFile.available())
+            while (FAT_CurrentFile.available())
             {
-                byte n = myFile.read(_DataBuffer, 255);
+                byte n = FAT_CurrentFile.read(_DataBuffer, 255);
+#ifdef DEBUG 
                 Serial.print("#");
-
+#endif
                 noInterrupts();
                 if (n != 255)
                     n -= 1;
@@ -55,14 +71,41 @@ void DOS::FAT_SendFile(unsigned char* filename)
                     _iec.sendEOI(_DataBuffer[n+1]);
                 interrupts();
             }
+#ifdef DEBUG 
             Serial.println("#");
-            myFile.close();
+#endif
+            FAT_CurrentFile.close();
         }
         else
         {
+#ifdef DEBUG 
             Serial.println(" NOT EXISTS.");
+#endif
             _iec.sendFNF();
         }
     }
 }
 
+void DOS::FAT_Save(unsigned char* filename)
+{
+    ConvertFilename(filename);
+    File FAT_CurrentFile = SD.open(_DataBuffer, FILE_WRITE);
+    bool done = false;
+    do
+    {
+        byte bytesInBuffer = 0;
+        do
+        {
+            noInterrupts();
+            FAT_CurrentFile.write(_iec.receive());
+            interrupts();
+            done = (_iec.state() bitand IEC::eoiFlag) or (_iec.state() bitand IEC::errorFlag);
+        } while(bytesInBuffer < sizeof(_DataBuffer) and not done);
+    } while(not done);
+    FAT_CurrentFile.close();
+}
+
+void DOS::ConvertFilename(unsigned char* filename)
+{
+    sprintf(_DataBuffer, "%s/%s", _directory.c_str(), filename);
+}
