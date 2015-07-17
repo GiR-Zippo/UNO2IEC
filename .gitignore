@@ -1,1 +1,23 @@
-build
+Binaries*/
+build*/
+.directory
+.mailmap
+*.a
+*.orig
+*.rej
+*~
+.hg/
+*.kdev*
+.DS_Store
+CMakeLists.txt.user
+*.bak
+*.patch
+*.diff
+*.REMOTE.*
+*.BACKUP.*
+*.BASE.*
+*.LOCAL.*
+Upstream.bat
+Pull.bat
+Push.bat
+Pull & Rebase.bat
