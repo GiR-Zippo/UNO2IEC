@@ -13,7 +13,7 @@ bool DOS::OpenChannel(byte channel, IEC::ATNCmd& cmd, byte atn)
 bool DOS::CloseChannel(byte channel, byte atn)
 {
     digitalWrite(13, LOW);
-    _channels[channel].atn = IEC::ATN_IDLE;
+    _channels[channel].atn = ATN_IDLE;
     _channels[channel].open = false;
     delete _channels[channel].cmd;
     _channels[channel].cmd = NULL;

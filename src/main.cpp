@@ -18,20 +18,17 @@ void setup()
     // initial connection handling.
     registerFacilities();
 
-    iec.setDeviceNumber(8);
-    iec.setPins(ATN, CLK, DATA, SRQ, RES);
+    iec.SetDeviceNumber(8);
+    iec.SetPins(ATN, CLK, DATA, SRQ, RES);
 
     // set all digital pins in a defined state.
-    iec.init();
+    iec.Init();
     dos.DriveReset();
 } // setup
 
 
 void loop()
 {
-    if(IEC::ATN_RESET == dos.Update())
-    {
-        // Wait for it to get out of reset.
-        while(IEC::ATN_RESET == dos.Update());
-    }
+    if(ATN_RESET == dos.Update())
+        while(ATN_RESET == dos.Update());
 } // loop

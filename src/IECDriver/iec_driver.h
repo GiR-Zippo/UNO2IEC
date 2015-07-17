@@ -4,62 +4,48 @@
 #include <Arduino.h>
 #include "global_defines.h"
 #include "cbmdefines.h"
+#include "Protocol.hpp"
 
+// IEC protocol timing consts:
+#define TIMING_BIT          70  // bit clock hi/lo time     (us)
+#define TIMING_NO_EOI       1   // delay before bits        (us)
+#define TIMING_EOI_WAIT     200 // delay to signal EOI      (us)
+#define TIMING_EOI_THRESH   20  // threshold for EOI detect (*10 us approx)
+#define TIMING_STABLE_WAIT  1  // line stabilization       (us)
+#define TIMING_ATN_PREDELAY 50  // delay required in atn    (us)
+#define TIMING_ATN_DELAY    100 // delay required after atn (us)
+#define TIMING_FNF_DELAY    100 // delay after fnf?         (us)
+
+// Version 0.5 equivalent timings: 70, 5, 200, 20, 20, 50, 100, 100
+
+// TIMING TESTING:
+//
+// The consts: 70,20,200,20,20,50,100,100 has been tested without debug print
+// to work stable on my (Larsp)'s DTV at 700000 < F_CPU < 9000000
+// using a 32 MB MMC card
+//
+
+// The IEC bus pin configuration on the Arduino side
+// See timeoutWait below.
+#define TIMEOUT  65000
 
 class IEC
 {
 public:
 
-    enum IECState {
-        noFlags   = 0,
-        eoiFlag   = (1 << 0),   // might be set by Iec_receive
-        atnFlag   = (1 << 1),   // might be set by Iec_receive
-        errorFlag = (1 << 2)  // If this flag is set, something went wrong and
-    };
-
-    // Return values for checkATN:
-    enum ATNCheck {
-        ATN_IDLE = 0,       // Nothing recieved of our concern
-        ATN_CMD = 1,        // A command is recieved
-        ATN_CMD_LISTEN = 2, // A command is recieved and data is coming to us
-        ATN_CMD_TALK = 3,   // A command is recieved and we must talk now
-        ATN_ERROR = 4,      // A problem occoured, reset communication
-        ATN_RESET = 5	    // The IEC bus is in a reset state (RESET line).
-    };
-
-    // IEC ATN commands:
-    enum ATNCommand {
-        ATN_CODE_LISTEN = 0x20,
-        ATN_CODE_TALK = 0x40,
-        ATN_CODE_DATA = 0x60,
-        ATN_CODE_CLOSE = 0xE0,
-        ATN_CODE_OPEN = 0xF0,
-        ATN_CODE_UNLISTEN = 0x3F,
-        ATN_CODE_UNTALK = 0x5F
-    };
-
-    // ATN command struct maximum command length:
-    enum {
-        ATN_CMD_MAX_LENGTH = 40
-    };
-    // default device number listening unless explicitly stated in ctor:
-    enum {
-        DEFAULT_IEC_DEVICE = 8
-    };
-
-    typedef struct _tagATNCMD {
+    typedef struct _tagATNCMD
+    {
         byte code;
         byte str[ATN_CMD_MAX_LENGTH];
         byte strLen;
     } ATNCmd;
 
     IEC(byte deviceNumber = DEFAULT_IEC_DEVICE);
-    ~IEC()
-    { }
+    ~IEC() {}
 
     // Initialise iec driver
     //
-    boolean init();
+    boolean Init();
 
     // Checks if CBM is sending an attention message. If this is the case,
     // the message is recieved and stored in atn_cmd.
@@ -88,14 +74,25 @@ public:
     byte receive();
 
     byte deviceNumber() const;
-    void setDeviceNumber(const byte deviceNumber);
-    void setPins(byte atn, byte clock, byte data, byte srqIn, byte reset);
+    void SetDeviceNumber(const byte deviceNumber);
+
+    void setDriveMode(FloppyMode mode);
+    FloppyMode GetDriveMode() { return (FloppyMode)_driveMode; }
+
+    void SetPins(byte atn, byte clock, byte data, byte srqIn, byte reset);
     IECState state() const;
 
+    void testINPUTS();
 private:
     byte timeoutWait(byte waitBit, boolean whileHigh);
-    byte receiveByte(void);
-    boolean sendByte(byte data, boolean signalEOI);
+
+    ///-1541
+    byte receiveByte1541(void);
+    boolean sendByte1541(byte data, boolean signalEOI);
+
+    ///-1571
+    boolean sendByte1571(byte data, boolean signalEOI);
+
     boolean turnAround(void);
     boolean undoTurnAround(void);
 
@@ -154,6 +151,8 @@ private:
         writePIN(m_clockPin, state);
     }
 
+    // Drive Mode
+    byte _driveMode;
     // communication must be reset
     byte m_state;
     byte m_deviceNumber;

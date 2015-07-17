@@ -9,7 +9,7 @@ void DOS::FAT_GetDir()
     File root = SD.open(_directory.c_str());
     root.rewindDirectory();
     byte n = sprintf(_DataBuffer, "%c%c\x12\x22%s%-22s\x22", 0, 0, "SDCARD:", _directory.c_str());
-    sendListingLine(n, _DataBuffer, basicPtr);
+    sendListingLine(n, basicPtr);
     while(true)
     {
         File entry = root.openNextFile();
@@ -24,12 +24,12 @@ void DOS::FAT_GetDir()
         if (!entry.isDirectory())
         {
             byte n = sprintf(_DataBuffer, "%c%c   \x22%-24s\x22PRG", 0, 0, name);
-            sendListingLine(n, _DataBuffer, basicPtr);
+            sendListingLine(n, basicPtr);
         }
         else
         {
             byte n = sprintf(_DataBuffer, "%c%c   \x22$/%-22s\x22<DIR>", 0, 0, name);
-            sendListingLine(n, _DataBuffer, basicPtr);
+            sendListingLine(n, basicPtr);
         }
         entry.close();
     }
@@ -66,9 +66,11 @@ void DOS::FAT_Load(unsigned char* filename)
                 if (n != 255)
                     n -= 1;
                 for(byte i = 0; i < n; i++)
-                    _iec.send(_DataBuffer[i]);
+                    if (!_iec.send(_DataBuffer[i]))
+                        break;
                 if (n != 255)
-                    _iec.sendEOI(_DataBuffer[n+1]);
+                    if(!_iec.sendEOI(_DataBuffer[n+1]))
+                        break;
                 interrupts();
             }
 #ifdef DEBUG 
@@ -99,7 +101,7 @@ void DOS::FAT_Save(unsigned char* filename)
             noInterrupts();
             FAT_CurrentFile.write(_iec.receive());
             interrupts();
-            done = (_iec.state() bitand IEC::eoiFlag) or (_iec.state() bitand IEC::errorFlag);
+            done = (_iec.state() bitand eoiFlag) or (_iec.state() bitand errorFlag);
         } while(bytesInBuffer < sizeof(_DataBuffer) and not done);
     } while(not done);
     FAT_CurrentFile.close();

@@ -3,16 +3,28 @@
 #include "cbmdefines.h"
 #include "Log.hpp"
 
+const char errorString[100][30] PROGMEM =
+{
+    {"00,OK,00,00"},
+    {"01,FILES SCRATCHED"},
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},
+    {"20,READ ERROR"},
+    {"21,READ ERROR"},
+    {"22,READ ERROR"},
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},
+    {0x00},{"31, SYNTAX ERROR"},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}, //39
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}, //49
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}, //59
+    {0x00},{"61, FILE NOT OPEN"},{0x00},{0x00},{0x00},{"65, NO BLOCK"},{0x00},{0x00},{0x00}, {0x00}, //69
+    {"70, NO CHANNEL"},{0x00},{0x00},{"73,PIRANHA DOS V0.1 1541"},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}, //79
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}, //89
+    {0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00},{0x00}, {0x00}
+};
+
 DOS::DOS(IEC& iec): _iec(iec),
 _cmd(*reinterpret_cast<IEC::ATNCmd*>(&_DataBuffer[sizeof(_DataBuffer) / 2]))
 {
-    EnumStrings[CBM::ErrOK]                     = "00,OK,00,00";
-    EnumStrings[CBM::ErrFilesScratched]         = "01,FILES SCRATCHED";
-    EnumStrings[CBM::ErrBlockHeaderNotFound]    = "20,READ ERROR";
-    EnumStrings[CBM::ErrSyncCharNotFound]       = "21,READ ERROR";
-    EnumStrings[CBM::ErrDataBlockNotFound]      = "22,READ ERROR";
-
-    EnumStrings[CBM::ErrIntro]                  = "73,PIRANHA DOS V0.1 1541";
     _directory = "/";
 }
 
@@ -25,7 +37,7 @@ void DOS::DriveReset()
     _init = true;
     for (byte i=0; i < 16; i++)
     {
-        _channels[i].atn = IEC::ATN_IDLE;
+        _channels[i].atn = ATN_IDLE;
         _channels[i].open = false;
         if (_channels[i].cmd != NULL)
             delete _channels[i].cmd;
@@ -45,7 +57,7 @@ void DOS::DriveReset()
 #ifdef DEBUG
     Serial.println("initialization done.");
 #endif
-    _filemode = FMODE_D64;
+    _filemode = FMODE_FAT;
 }
 
 void DOS::SetATN(byte channel, byte atn)
@@ -90,19 +102,19 @@ bool DOS::selectImage(byte channel)
 void DOS::getStatus(byte channel)
 {
     //Channel 15
-    if (channel == CBM::CMD_CHANNEL && _channels[channel].atn == IEC::ATN_CMD)
+    if (channel == CBM::CMD_CHANNEL && _channels[channel].atn == ATN_CMD)
     {
         if (_init)
         {
             _init = false;
-            sendStatus(getIOErrorMessageString(CBM::ErrIntro));
+            sendStatus(CBM::ErrIntro);
             return;
         }
     }
 
     //The others
-    _channels[channel].atn == IEC::ATN_IDLE;
-    sendStatus(getIOErrorMessageString(CBM::ErrOK));
+    _channels[channel].atn == ATN_IDLE;
+    sendStatus(CBM::ErrOK);
     return;
 }
 
@@ -130,22 +142,21 @@ void DOS::Save(byte channel)
     }
 }
 
-const char* DOS::getIOErrorMessageString(int enumVal)
-{
-    return EnumStrings[enumVal];
-}
-
 /*************************************************\
 |*                  IEC Functions                *|
 \*************************************************/
 
 ///- Send DriveStatus
-void DOS::sendStatus(String data)
+void DOS::sendStatus(CBM::IOErrorMessage msg)
 {
     byte i;
     noInterrupts();
-    for(i = 0; i < data.length() ; ++i)
-        _iec.send(data[i]);
+
+    for(i = 0; i < sizeof(errorString[msg]) ; ++i)
+    {
+        char a = pgm_read_byte_near(errorString[msg] + i);
+        _iec.send(a);
+    }
     _iec.sendEOI('\r'); //send CR
     interrupts();
 }
@@ -160,13 +171,13 @@ void DOS::prepareSendListing()
 }
 
 ///- send listing line
-void DOS::sendListingLine(byte len, const char* text, word& basicPtr)
+void DOS::sendListingLine(byte len, word& basicPtr)
 {
     byte i;
 
     // Increment next line pointer
     // note: minus two here because the line number is included in the array already.
-    basicPtr += len + 5 - 2;
+    basicPtr += len + 3;//5 - 2;
 
     // Send that pointer
     _iec.send(basicPtr bitand 0xFF);
@@ -174,7 +185,7 @@ void DOS::sendListingLine(byte len, const char* text, word& basicPtr)
 
     // Send line contents
     for(i = 0; i < len; i++)
-        _iec.send(text[i]);
+        _iec.send(_DataBuffer[i]);
 
     // Finish line
     _iec.send(0);

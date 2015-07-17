@@ -18,8 +18,8 @@ enum FileMode
     FMODE_D64 = 1,
     FMODE_MAX = 2
 };
-
 static const char * EnumStrings[100];
+
 class Driver;
 class File;
 
@@ -28,9 +28,9 @@ class DOS
     public:
         DOS(IEC& iec);
         ~DOS();
-        
+
         void DriveReset();
-        
+
         ///- DOSHandler.cpp
         byte Update(void);
 
@@ -41,7 +41,7 @@ class DOS
         void ChannelListen(byte channel);
 
         void SetATN(byte channel, byte atn);
-        
+
     ///- DOSCommands.cpp
     private:
         void ChangeDriveNumber();
@@ -53,7 +53,6 @@ class DOS
         void changeDirectory(byte channel);
         void getStatus(byte channel);
         bool selectImage(byte channel);
-        const char * getIOErrorMessageString(int enumVal);
         String _directory;
         
     ///- FatDriver
@@ -70,20 +69,22 @@ class DOS
 
     ///- IEC Functions
     private:
-        void sendStatus(String data);
+        void sendStatus(CBM::IOErrorMessage msg);
         void prepareSendListing();
-        void sendListingLine(byte len, const char* text, word &basicPtr);
+        void sendListingLine(byte len, word &basicPtr);
         void finishSendListing();
 
         char *ToChar(unsigned char* args) { return reinterpret_cast<char *>(args); }
+
+    ///- IEC LowLevel
     private:
         SdFat SD;
-        IEC::ATNCmd    &_cmd;
-        IEC            &_iec;
-        Channel         _channels[16];
-        bool            _init;
-        char            _DataBuffer[256];  ///- Databuffer for I/O
-        FileMode        _filemode;
+        IEC::ATNCmd            &_cmd;
+        IEC                    &_iec;
+        Channel                 _channels[16];
+        bool                    _init;
+        char                    _DataBuffer[256];  ///- Databuffer for I/O
+        FileMode                _filemode;
 };
 #endif
  
