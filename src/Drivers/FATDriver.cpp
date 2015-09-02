@@ -55,27 +55,25 @@ void DOS::FAT_Load(unsigned char* filename)
             Serial.print(" SIZE ");
             Serial.println(FAT_CurrentFile.size());
 #endif
-
             while (FAT_CurrentFile.available())
             {
                 byte n = FAT_CurrentFile.read(_DataBuffer, 255);
+                n--;//Der ist 1 zu groß
 #ifdef DEBUG 
                 Serial.print("#");
 #endif
                 noInterrupts();
-                if (n != 255)
-                    n -= 1;
-                for(byte i = 0; i < n; i++)
+                if (n != 254)
+                    n--;
+
+                for(byte i = 0; i <= n; i++)
                     if (!_iec.send(_DataBuffer[i]))
                         break;
-                if (n != 255)
-                    if(!_iec.sendEOI(_DataBuffer[n+1]))
+                if (n != 254)
+                    if(!_iec.sendEOI(_DataBuffer[++n]))
                         break;
                 interrupts();
             }
-#ifdef DEBUG 
-            Serial.println("#");
-#endif
             FAT_CurrentFile.close();
         }
         else

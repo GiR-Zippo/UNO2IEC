@@ -3,7 +3,7 @@
 #include "cbmdefines.h"
 #include "Log.hpp"
 
-const char errorString[100][30] PROGMEM =
+const char errorString[100][25] PROGMEM =
 {
     {"00,OK,00,00"},
     {"01,FILES SCRATCHED"},
@@ -60,11 +60,6 @@ void DOS::DriveReset()
     _filemode = FMODE_FAT;
 }
 
-void DOS::SetATN(byte channel, byte atn)
-{
-    _channels[channel].atn = atn;
-}
-
 ///-privater Kram
 void DOS::getDirectory(byte channel)
 {
@@ -83,12 +78,36 @@ void DOS::getDirectory(byte channel)
     finishSendListing();
 }
 
+void DOS::changeDriveNumber(byte channel)
+{
+    byte n = sprintf(_DataBuffer, "%s", _channels[channel].cmd->str);
+    _iec.SetDeviceNumber(_DataBuffer[3]);
+}
+
 void DOS::changeDirectory(byte channel)
 {
-    _directory ="";
     byte n = sprintf(_DataBuffer, "%s", _channels[channel].cmd->str);
     for (uint16_t i = 1; i != n; i++)
+    {
+        if (_DataBuffer[i] == 0 || _DataBuffer[i] == ' ')
+            break;
         _directory += _DataBuffer[i];
+    }
+    prepareSendListing();
+    finishSendListing();
+}
+
+void DOS::changeDirectoryUp(byte channel)
+{
+    for (int i = _directory.length(); i != 1; i--)
+    {
+        if (_directory.charAt(i) == '/')
+        {
+            _directory.setCharAt(i, '\0');
+            break;
+        }
+        _directory.setCharAt(i, '\0');
+    }
     prepareSendListing();
     finishSendListing();
 }

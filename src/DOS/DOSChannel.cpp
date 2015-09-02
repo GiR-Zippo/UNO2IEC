@@ -7,6 +7,7 @@ bool DOS::OpenChannel(byte channel, IEC::ATNCmd& cmd, byte atn)
     _channels[channel].atn = atn;
     _channels[channel].open = true;
     _channels[channel].cmd = new IEC::ATNCmd(cmd);
+    Command(channel, ATN_CODE_OPEN);
     return true;
 }
 
@@ -20,6 +21,16 @@ bool DOS::CloseChannel(byte channel, byte atn)
     return true;
 }
 
+void DOS::ChannelCommand(byte channel, IEC::ATNCmd& cmd, byte atn)
+{
+    _channels[channel].atn = atn;
+    if (cmd.strLen > 0)
+    {
+        _channels[channel].cmd = new IEC::ATNCmd(cmd);
+        Command(channel, ATN_CODE_DATA);
+    }
+}
+
 void DOS::ChannelTalk(byte channel)
 {
 #ifdef DEBUG
@@ -27,26 +38,7 @@ void DOS::ChannelTalk(byte channel)
     sprintf_P(_DataBuffer, (PGM_P)F("cmd: %s (len: %d) "), _channels[channel].cmd->str,_channels[channel].cmd->strLen);
     Log(Information, FAC_IFACE, _DataBuffer);
 #endif
-
-    if (_channels[channel].cmd == NULL)
-        getStatus(channel);
-    //Send Directory
-    else if (_channels[channel].cmd->str[0] == '$' && _channels[channel].cmd->strLen == 1)
-        getDirectory(channel);
-    else if (_channels[channel].cmd->str[0] == '$' &&
-             _channels[channel].cmd->str[1] == '/' && 
-             _channels[channel].cmd->strLen > 1)
-        changeDirectory(channel);
-    //Select an Image
-    else if (_channels[channel].cmd->str[0] == '$' &&
-             _channels[channel].cmd->str[1] == ':' && 
-             _channels[channel].cmd->strLen > 1)
-        selectImage(channel);
-    else if (_channels[channel].cmd->str[0] == 'U' &&
-             _channels[channel].cmd->str[1] == '0' && 
-             _channels[channel].cmd->strLen > 1)
-        return;
-    else
+    if (!Command(channel, ATN_CODE_TALK))
         Load(channel);
     return;
 }

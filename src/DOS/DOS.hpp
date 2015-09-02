@@ -39,18 +39,16 @@ class DOS
         bool CloseChannel(byte channel, byte atn);
         void ChannelTalk(byte channel);
         void ChannelListen(byte channel);
+        void ChannelCommand(byte channel, IEC::ATNCmd& cmd, byte atn);
 
-        void SetATN(byte channel, byte atn);
-
-    ///- DOSCommands.cpp
-    private:
-        void ChangeDriveNumber();
-        
+        bool Command(byte channel, ATNCommand req);
     private:
         void Load(byte channel);
         void Save(byte channel);
         void getDirectory(byte channel);
+        void changeDriveNumber(byte channel);
         void changeDirectory(byte channel);
+        void changeDirectoryUp(byte channel);
         void getStatus(byte channel);
         bool selectImage(byte channel);
         String _directory;
@@ -75,7 +73,6 @@ class DOS
         void finishSendListing();
 
         char *ToChar(unsigned char* args) { return reinterpret_cast<char *>(args); }
-
     ///- IEC LowLevel
     private:
         SdFat SD;

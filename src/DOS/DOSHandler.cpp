@@ -45,7 +45,7 @@ byte DOS::Update(void)
                 break;
             case ATN_CODE_DATA:
                 if(retATN == ATN_CMD)
-                    SetATN(chan, retATN);
+                    ChannelCommand(chan, _cmd, retATN);
                 else if(retATN == ATN_CMD_TALK)
                     ChannelTalk(chan);
                 else if(retATN == ATN_CMD_LISTEN)
