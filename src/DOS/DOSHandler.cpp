@@ -8,7 +8,7 @@ byte DOS::Update(void)
     if(_iec.checkRESET())
     {
         // IEC reset line is in reset state, so we should set all states in reset.
-        DriveReset();
+        DriveReset(true);
         return ATN_RESET;
     }
     noInterrupts();
@@ -21,7 +21,7 @@ byte DOS::Update(void)
         strcpy_P(_DataBuffer, (PGM_P)F("ATNCMD: IEC_ERROR!"));
         Log(Error, FAC_IFACE, _DataBuffer);
 #endif
-        DriveReset();
+        DriveReset(true);
     }
     // Did anything happen from the host side?
     else if(retATN not_eq ATN_IDLE)

@@ -1,4 +1,3 @@
-//#define DIGITALIO_NO_INTERRUPT_SAFETY
 #define DIGITALIO_NO_MIX_ANALOGWRITE
 #include "digitalIOPerformance.h"
 

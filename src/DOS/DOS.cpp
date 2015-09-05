@@ -32,7 +32,7 @@ DOS::~DOS()
 {
 }
 
-void DOS::DriveReset()
+void DOS::DriveReset(bool soft)
 {
     _init = true;
     for (byte i=0; i < 16; i++)
@@ -43,6 +43,10 @@ void DOS::DriveReset()
             delete _channels[i].cmd;
         _channels[i].cmd = NULL;
     }
+    _filemode = FMODE_FAT;
+
+    if (soft)
+        return;
 #ifdef DEBUG
     Serial.print("Initializing SD card...");
 #endif
@@ -57,7 +61,6 @@ void DOS::DriveReset()
 #ifdef DEBUG
     Serial.println("initialization done.");
 #endif
-    _filemode = FMODE_FAT;
 }
 
 ///-privater Kram
@@ -103,10 +106,11 @@ void DOS::changeDirectoryUp(byte channel)
     {
         if (_directory.charAt(i) == '/')
         {
-            _directory.setCharAt(i, '\0');
+            _directory.setCharAt(i, ' ');
+            _directory.trim();
             break;
         }
-        _directory.setCharAt(i, '\0');
+        _directory.setCharAt(i, ' ');
     }
     prepareSendListing();
     finishSendListing();
@@ -196,7 +200,7 @@ void DOS::sendListingLine(byte len, word& basicPtr)
 
     // Increment next line pointer
     // note: minus two here because the line number is included in the array already.
-    basicPtr += len + 3;//5 - 2;
+    basicPtr += len + 3;
 
     // Send that pointer
     _iec.send(basicPtr bitand 0xFF);

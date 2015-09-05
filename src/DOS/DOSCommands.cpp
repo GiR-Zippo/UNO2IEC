@@ -45,6 +45,9 @@ bool DOS::Command(byte channel, ATNCommand req)
              _channels[channel].cmd->str[2] == '>' &&
              _channels[channel].cmd->strLen > 2)
             changeDriveNumber(channel);
+        else if(_channels[channel].cmd->str[0] == 'I' &&
+             _channels[channel].cmd->strLen == 1)
+            DriveReset(true);
         else
             return false;
     }

@@ -102,9 +102,11 @@ ATNCheck IEC::checkATN(ATNCmd& cmd)
 
     if(not readATN())
     {
+        #define DIGITALIO_NO_INTERRUPT_SAFETY
         // Attention line is active, go to listener mode and get message. Being fast with the next two lines here is CRITICAL!
-        writeDATA(true);
-        writeCLOCK(false);
+        writeCLOCK(LOW);
+        writeDATA(HIGH);
+        #undef DIGITALIO_NO_INTERRUPT_SAFETY
         delayMicroseconds(TIMING_ATN_PREDELAY);
 
         // Get first ATN byte, it is either LISTEN or TALK
@@ -200,21 +202,24 @@ ATNCheck IEC::checkATN(ATNCmd& cmd)
         {
             // Either the message is not for us or insignificant, like unlisten.
             delayMicroseconds(TIMING_ATN_DELAY);
+            #define DIGITALIO_NO_INTERRUPT_SAFETY
             writeDATA(false);
             writeCLOCK(false);
-
+            #undef DIGITALIO_NO_INTERRUPT_SAFETY
             // Wait for ATN to release and quit
             while(not readATN());
         }
     }
     else {
         // No ATN, keep lines in a released state.
+        #define DIGITALIO_NO_INTERRUPT_SAFETY
         writeDATA(false);
         writeCLOCK(false);
+        #undef DIGITALIO_NO_INTERRUPT_SAFETY
     }
 
     // some delay is required before more ATN business can take place.
-    delayMicroseconds(TIMING_ATN_DELAY);
+    delayMicroseconds(TIMING_ATN_PREDELAY);
 
     cmd.strLen = i;
     return ret;

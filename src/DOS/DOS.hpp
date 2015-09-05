@@ -29,7 +29,7 @@ class DOS
         DOS(IEC& iec);
         ~DOS();
 
-        void DriveReset();
+        void DriveReset(bool soft = false);
 
         ///- DOSHandler.cpp
         byte Update(void);
